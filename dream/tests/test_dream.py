@@ -11,7 +11,7 @@ import json
 
 from webob.multidict import UnicodeMultiDict
 from dream import (App, Request, Response, JSONResponse,
-                   HumanReadableJSONResponse, exc,
+                   HumanReadableJSONResponse, exc, expose,
                    endpoints, _wrap_endpoint, _exception_to_response,
                    _debug_exception_to_reponse)
 
@@ -111,8 +111,29 @@ class HumanReadableJSONResponseTest(JSONResponseTest):
     def setUp(self):
         self.resp_class = HumanReadableJSONResponse
 
+class TestExposeFunc(unittest.TestCase):
+    def test_expose(self):
+        url, method = "/cheese", "GET"
+        class ExampleApp(App):
+            @expose(url, method)
+            def cheese(self, request):
+                pass
+        app = ExampleApp()
+        self.assertEqual(app.map[method]._patterns.keys(), [url])
+        self.assert_(app.map[method]._patterns[url][1] is not app.cheese)
 
-class TestExpose(unittest.TestCase):
+    def test_multiple_exposes(self):
+        urls, method = ["/camembert", "/smoked_gouda", "/stilton"], "GET"
+        class ExampleApp(App):
+            @expose(urls[0])
+            @expose(urls[1])
+            @expose(urls[2])
+            def cheese(self, request):
+                pass
+        app = ExampleApp()
+        self.assertEqual(list(sorted(app.map[method]._patterns.keys())), urls)
+
+class TestAppExpose(unittest.TestCase):
 
     """Test App.expose."""
 

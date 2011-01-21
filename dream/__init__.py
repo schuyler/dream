@@ -61,6 +61,13 @@ def _wrap_endpoint(function):
 
     return wrapper
 
+def expose(pattern, method="GET", **kwargs):
+    def _expose(function):
+        if not hasattr(function, "routes"):
+            function.routes = []
+        function.routes += [(pattern, method, kwargs)]
+        return function
+    return _expose
 
 class App(decoroute.App):
 
@@ -74,6 +81,11 @@ class App(decoroute.App):
         self.map = dict(
             ((method, decoroute.UrlMap())
              for method in ('HEAD', 'GET', 'POST', 'PUT', 'DELETE')))
+        for attr in dir(self):
+            function = getattr(self, attr)
+            if callable(function) and hasattr(function, "routes"):
+                for pattern, method, kwargs in function.routes:
+                    self.expose(pattern, method, **kwargs)(function)
         self.not_found(lambda e: exc.HTTPNotFound(detail="Not found"))
         self._render = self._render_response
         self.debug = debug
